@@ -79,12 +79,14 @@ def name(o):
 
 
 class SolverError(Exception):
+
     z3_re = re.compile('''line (\d+) column (\d+)\: ([^\n]+)''')
-    
+
     def __init__(self, error, formula):
         self.error = error
         self.formula = formula
-            
+
+
     def __str__(self):
         match = self.z3_re.search(self.error)
         if match is not None:
@@ -100,8 +102,10 @@ class SolverError(Exception):
 
 class InvalidExpression(Exception):
     
+
     def __init__(self, expr):
         self.expr = expr
+
 
     def __str__(self):
         return 'Invalid expression: {0}'.format(repr(self.expr))
