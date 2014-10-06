@@ -24,6 +24,7 @@ nonsense smt2 files.
 import os
 import re
 import subprocess
+import time
 
 import smt.bitvector as bv
 import smt.boolean as bl
@@ -44,9 +45,10 @@ class Solver(object):
     cache = dict()
     model_cache = dict()
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None):3Tan4Qcg9oCM
         self._parent = parent
         self._roots = []
+        self._solve_time = 0
         
     def fork(self):
         return (Solver(self), Solver(self))
@@ -54,7 +56,17 @@ class Solver(object):
     def flatten(self):
         self._roots = self.roots()
         self._parent = None
-        
+
+    def concretise(self):
+        m = self.model()
+        self._roots = []
+        for symbol_name in m:
+            symbol_value = m[symbol_name]
+            self.add(bv.Symbol(symbol_value.size, symbol_name) == symbol_value)
+
+    def solve_time(self):
+        return self._solve_time
+
     def add(self, expr):
         self._roots.append(expr)
         self._cache(expr)
@@ -127,8 +139,10 @@ class Solver(object):
                 tmp.write(smt2)
             
             command = 'z3 -smt2 {0} > {1}'.format(in_file, out_file)
+            started = time.time()
             subprocess.call(command, shell=True)
-            
+            self._solve_time = time.time() - started
+
             with open(out_file, 'r') as tmp:
                 output = tmp.read()
             
