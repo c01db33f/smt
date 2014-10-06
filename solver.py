@@ -45,7 +45,7 @@ class Solver(object):
     cache = dict()
     model_cache = dict()
     
-    def __init__(self, parent=None):3Tan4Qcg9oCM
+    def __init__(self, parent=None):
         self._parent = parent
         self._roots = []
         self._solve_time = 0
