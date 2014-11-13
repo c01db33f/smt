@@ -30,9 +30,11 @@ import smt.bitvector as bv
 import smt.boolean as bl
 from smt.enums import *
 from smt.utils import *
- 
+
+
 cache_hits = 0
 cache_misses = 0
+
 
 class Solver(object):
     
@@ -51,7 +53,7 @@ class Solver(object):
         self._solve_time = 0
         
     def fork(self):
-        return (Solver(self), Solver(self))
+        return Solver(self), Solver(self)
 
     def flatten(self):
         self._roots = self.roots()
@@ -123,7 +125,6 @@ class Solver(object):
     def _call_solver(self, smt2, in_file, out_file):
         try:
             # we use disk as a persistent second level cache...
-            raise TypeError
             with open(out_file, 'r') as tmp:
                 output = tmp.read()
                 
@@ -131,21 +132,23 @@ class Solver(object):
             cache_hits += 1
             
         except:
-            
+
             global cache_misses
             cache_misses += 1
-            
+
+            started = time.time()
             with open(in_file, 'w') as tmp:
                 tmp.write(smt2)
             
             command = 'z3 -smt2 {0} > {1}'.format(in_file, out_file)
-            started = time.time()
             subprocess.call(command, shell=True)
-            self._solve_time = time.time() - started
 
             with open(out_file, 'r') as tmp:
                 output = tmp.read()
-            
+
+            finished = time.time()
+            self._solve_time = finished - started
+
             os.unlink(in_file)
             #os.unlink(out_file)
             
@@ -188,19 +191,16 @@ class Solver(object):
         return output
         
     def check(self, expr=None):
-
         if expr is not None and not expr.symbolic:
             return expr.value
 
-        #print 'check {}'.format(expr)
+        #print 'check {}'.format(expr.smt2())
         
         smt2 = '(set-logic QF_BV)\n'
         smt2 += self._smt2(expr)
         smt2 += '(check-sat)\n'
         
         smt2_hash = string_hash(smt2)
-        #print(smt2)
-        #print(smt2_hash)
         if smt2_hash not in self.cache:
             in_file = '/tmp/{0:016x}.check.smt2'.format(smt2_hash)
             out_file = '/tmp/{0:016x}.check'.format(smt2_hash)
@@ -218,17 +218,12 @@ class Solver(object):
         return self.cache[smt2_hash]
         
     def model(self, expr=None):
-
-        #print 'model {}'.format(expr)
-        
         smt2 = '(set-logic QF_BV)\n'
         smt2 += self._smt2(expr)
         smt2 += '(check-sat)\n'
         smt2 += '(get-model)\n'
         
         smt2_hash = string_hash(smt2)
-        #print(smt2)
-        #print(smt2_hash)
         if smt2_hash not in self.model_cache:
             in_file = '/tmp/{0:016x}.model.smt2'.format(smt2_hash)
             out_file = '/tmp/{0:016x}.model'.format(smt2_hash)
